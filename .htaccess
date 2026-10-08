@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# If the request is for a real file or folder, serve it directly
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Otherwise, route everything to routes.php
+RewriteRule ^ routes.php [QSA,L]
