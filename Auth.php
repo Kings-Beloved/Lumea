@@ -329,23 +329,22 @@ try {
   {
     $mail = new PHPMailer(true);
 
-    try {
-      $mail->isSMTP();
-      $mail->Host       = 'smtp.gmail.com';
-      $mail->SMTPAuth   = true;
-      $mail->Username   = 'olujinmioluwadarasimi01@gmail.com';
-      $mail->Password   = 'gbynvngwkbewdwvl';
-      $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-      $mail->Port       = 465;
-      $mail->Timeout    = 10;
-
-      $mail->SMTPOptions = array(
-        'ssl' => array(
-          'verify_peer' => false,
-          'verify_peer_name' => false,
-          'allow_self_signed' => true
-        )
-      );
+try {
+    $mail->isSMTP();
+    $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
+    $mail->SMTPAuth   = true;
+    $mail->Username   = getenv('SMTP_USER');
+    $mail->Password   = getenv('SMTP_PASSWORD');
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port       = (int)(getenv('SMTP_PORT') ?: 587);
+    $mail->Timeout    = 10;
+      // $mail->SMTPOptions = array(
+      //   'ssl' => array(
+      //     'verify_peer' => false,
+      //     'verify_peer_name' => false,
+      //     'allow_self_signed' => true
+      //   )
+      // );
 
       $mail->setFrom('olujinmioluwadarasimi01@gmail.com', 'Luméa Spa & Wellness');
       $mail->addAddress($recipientEmail, $firstName);
