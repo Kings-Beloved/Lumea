@@ -1,5 +1,5 @@
 <?php
-
+require_once 'Config.php';
 require_once 'Router.php';
 require_once 'Treatment.php';
 require_once 'Auth.php';
