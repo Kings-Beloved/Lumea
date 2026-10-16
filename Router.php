@@ -13,7 +13,8 @@ class Router{
     public function dispatch($method, $path){
         $path = '/' . trim($path, '/');
         foreach($this->routes as $route){
-            if($method ==$route['method'] && $path == $route['path']){
+            $routePath = '/' . trim($route['path'], '/');
+            if ($method === $route['method'] && $path === $routePath){
                 return call_user_func($route['callback']);
             }
         }
