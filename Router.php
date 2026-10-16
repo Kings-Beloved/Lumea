@@ -1,5 +1,7 @@
 <?php
 
+require_once 'Config.php';
+
 class Router{
     private $routes =[];
 
