@@ -179,150 +179,60 @@ class Auth extends Config
   // ------------------------------------------------------------------
   // HELPER: Send Pending Payment Email
   // ------------------------------------------------------------------
-  private function send_pending_payment_email(string $recipientEmail, string $firstName, string $serviceName, string $date, string $time, int $bookingId, float $amount)
-  {
-      $secureToken = hash_hmac('sha256', (string)$bookingId, self::APP_SECRET_KEY);
-      $paymentUrl = "https://lumeaa-zhjc.vercel.app/complete-payment?reference=" . $bookingId . "&token=" . $secureToken;
+  private function send_pending_payment_email(string $recipientEmail, string $firstName, string $serviceName, string $date, string $time, int $bookingId, float $amount): void
+{
+    $secureToken = hash_hmac('sha256', (string)$bookingId, self::APP_SECRET_KEY);
+    $paymentUrl = "https://lumeaa-zhjc.vercel.app/complete-payment?reference=" . $bookingId . "&token=" . $secureToken;
 
-    $mail = new PHPMailer(true);
+    $apiUrl = 'https://api.brevo.com/v3/smtp/email';
+    $apiKey = getenv('BREVO_API_KEY');
+    $senderEmail = getenv('SENDER_EMAIL') ?: 'olujinmioluwadarasimi01@gmail.com';
 
-try {
-    $mail->isSMTP();
-    $mail->Host       = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-    $mail->SMTPAuth   = true;
-    $mail->Username   = getenv('SMTP_USER');
-    $mail->Password   = getenv('SMTP_PASSWORD');
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port       = (int)(getenv('SMTP_PORT') ?: 587);
-    $mail->Timeout    = 10;
-    
-      //   $mail->SMTPOptions = array(
-      //   'ssl' => array(
-      //     'verify_peer' => false,
-      //     'verify_peer_name' => false,
-      //     'allow_self_signed' => true
-      //   )
-      // );
+    // Format amount and date cleanly
+    $formattedAmount = number_format($amount, 2);
+    $formattedDate = (strtotime($date) !== false) ? date('F j, Y', strtotime($date)) : $date;
 
-      $mail->setFrom('olujinmioluwadarasimi01@gmail.com', 'Luméa Spa & Wellness');
-      $mail->addAddress($recipientEmail, $firstName);
+    $htmlContent = "
+        <div style='font-family: Arial, sans-serif; color: #333;'>
+            <h2>Hello $firstName,</h2>
+            <p>Thank you for booking with <strong>Luméa Spa & Wellness</strong>. We have received your booking for <strong>$serviceName</strong>.</p>
+            <p><strong>Appointment Details:</strong></p>
+            <ul>
+                <li>Date: $formattedDate</li>
+                <li>Time: $time</li>
+                <li>Deposit Amount: ₦$formattedAmount</li>
+            </ul>
+            <p>Please complete your payment deposit to secure your appointment:</p>
+            <p><a href='$paymentUrl' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Complete Payment</a></p>
+            <p>If you did not request this, please ignore this email.</p>
+        </div>
+    ";
 
-      $mail->isHTML(true);
+    $emailData = [
+        'sender' => ['name' => 'Luméa Spa & Wellness', 'email' => $senderEmail],
+        'to' => [['email' => $recipientEmail, 'name' => $firstName]],
+        'subject' => "Action Required: Complete Your Booking #" . $bookingId . " - Luméa Spa",
+        'htmlContent' => $htmlContent
+    ];
 
-      // Format amount and date cleanly
-      $formattedAmount = number_format($amount, 2);
-      $formattedDate   = (strtotime($date) !== false) ? date('F j, Y', strtotime($date)) : $date;
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($emailData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'accept: application/json',
+        'api-key: ' . $apiKey,
+        'content-type: application/json'
+    ]);
 
-      $mail->Subject = "Action Required: Complete Your Booking #" . $bookingId . " - Luméa Spa";
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-      $mail->Body = "
-            <!DOCTYPE html>
-            <html lang='en'>
-<head>
-  <meta charset='utf-8'>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-</head>
-<body style='margin: 0; padding: 0; background-color: #f8f6f4; font-family: -apple-system, BlinkMacSystemFont,  Georgia, serif;'>
-  <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='background-color: #f8f6f4; padding: 48px 12px;'>
-    <tr>
-      <td align='center'>
-        <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='max-width: 560px; background-color: #ffffff; border-radius: 4px; border: 1px solid #e8e2dc; overflow: hidden;'>
-          
-          <!-- Editorial Header -->
-          <tr>
-            <td style='padding: 40px 48px 24px 48px; text-align: center;'>
-              <span style='font-size: 22px; font-weight: 400; letter-spacing: 5px; color: #1c1917; text-transform: uppercase;'>L U M É A</span>
-              <div style='font-size: 10px; letter-spacing: 2.5px; color: #a8a29e; text-transform: uppercase; margin-top: 6px;'>Spa &amp; Wellness</div>
-              <div style='width: 32px; height: 1px; background-color: #d6d3d1; margin: 24px auto 0 auto;'></div>
-            </td>
-          </tr>
-
-          <!-- Action Notice & Messaging -->
-          <tr>
-            <td style='padding: 8px 48px 24px 48px; text-align: center;'>
-              <span style='display: inline-block; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #9a3412; font-weight: 600; padding: 6px 14px; background-color: #fff7ed; border-radius: 20px; border: 1px solid #ffedd5;'>
-                Action Required — Slot Unreserved
-              </span>
-              <h1 style='font-size: 20px; font-weight: 400; color: #1c1917; margin: 20px 0 8px 0; font-family: Georgia, serif;'>
-                Your appointment request is logged, " . htmlspecialchars($firstName) . ".
-              </h1>
-              <p style='font-size: 14px; color: #78716c; line-height: 1.6; margin: 0;'>
-                We have received your booking request. To lock in your preferred time slot, please complete a deposit payment of <strong style='color: #1c1917;'>&#8358;5,000.00</strong>. Unreserved slots remain open to walk-in guests.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Appointment Details Card -->
-          <tr>
-            <td style='padding: 0 48px 28px 48px;'>
-              <table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='background-color: #fafaf9; border: 1px solid #f5f5f4; border-radius: 4px; padding: 24px;'>
-                <tr>
-                  <td style='padding-bottom: 12px; font-size: 11px; letter-spacing: 1.5px; color: #a8a29e; text-transform: uppercase; border-bottom: 1px solid #e7e5e4;' colspan='2'>
-                    Booking Summary
-                  </td>
-                </tr>
-                <tr>
-                  <td style='padding: 12px 0 6px 0; font-size: 13px; color: #78716c;'>Booking Reference</td>
-                  <td align='right' style='padding: 12px 0 6px 0; font-size: 13px; font-weight: 600; color: #1c1917;'>#" . $bookingId . "</td>
-                </tr>
-                <tr>
-                  <td style='padding: 6px 0; font-size: 13px; color: #78716c;'>Service</td>
-                  <td align='right' style='padding: 6px 0; font-size: 13px; font-weight: 600; color: #1c1917;'>" . htmlspecialchars($serviceName) . "</td>
-                </tr>
-                <tr>
-                  <td style='padding: 6px 0; font-size: 13px; color: #78716c;'>Total Service Fee</td>
-                  <td align='right' style='padding: 6px 0; font-size: 13px; font-weight: 600; color: #1c1917;'>&#8358;" . $formattedAmount . "</td>
-                </tr>
-                <tr>
-                  <td style='padding: 6px 0; font-size: 13px; color: #78716c;'>Required Deposit</td>
-                  <td align='right' style='padding: 6px 0; font-size: 13px; font-weight: 600; color: #9a3412;'>&#8358;5,000.00</td>
-                </tr>
-                <tr>
-                  <td style='padding: 6px 0; font-size: 13px; color: #78716c;'>Date</td>
-                  <td align='right' style='padding: 6px 0; font-size: 13px; font-weight: 600; color: #1c1917;'>" . htmlspecialchars($formattedDate) . "</td>
-                </tr>
-                <tr>
-                  <td style='padding: 6px 0; font-size: 13px; color: #78716c;'>Time</td>
-                  <td align='right' style='padding: 6px 0; font-size: 13px; font-weight: 600; color: #1c1917;'>" . htmlspecialchars($time) . "</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Primary Call-to-Action Button -->
-          <tr>
-            <td style='padding: 0 48px 36px 48px; text-align: center;'>
-              <a href='{$paymentUrl}' style='background-color: #1c1917; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; padding: 16px 32px; border-radius: 2px; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.08);'>
-                Complete Deposit Payment &rarr;
-              </a>
-              <p style='font-size: 12px; color: #a8a29e; margin-top: 16px; margin-bottom: 0;'>
-                Need assistance? Reply to this email or contact support.
-              </p>
-            </td>
-          </tr>
-
-          <!-- Clean Minimal Footer -->
-          <tr>
-            <td style='padding: 24px 48px; background-color: #fafaf9; border-top: 1px solid #f5f5f4; text-align: center;'>
-              <p style='margin: 0; font-size: 12px; color: #a8a29e; letter-spacing: 0.5px;'>
-                Luméa Spa &amp; Wellness &bull; Pending Reservation
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>";
-
-      $mail->send();
-    } catch (Exception $e) {
-      error_log("PHPMailer Error: " . $mail->ErrorInfo);
+    if ($httpCode < 200 || $httpCode >= 300) {
+        error_log("Brevo API Error: " . $response);
     }
-  }
-  // ------------------------------------------------------------------
+}// ------------------------------------------------------------------
   // HELPER: Send Confirmed Payment Email
   // ------------------------------------------------------------------
   private function send_payment_confirmation_email(string $recipientEmail, string $firstName, string $serviceName, string $date, string $time, int $bookingId, float $amountPaid, float $totalAmount = 0.0)
