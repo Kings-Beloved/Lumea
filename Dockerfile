@@ -1,27 +1,26 @@
 FROM php:8.2-apache
 
-# Enable Apache mod_rewrite for routing
-RUN a2enmod rewrite
+# Enable Apache modules
+RUN a2enmod rewrite headers
 
-# Allow .htaccess overrides in the web root
-RUN echo '<Directory /var/www/html/> \n\
-    Options Indexes FollowSymLinks \n\
-    AllowOverride All \n\
-    Require all granted \n\
-</Directory>' > /etc/apache2/conf-available/override.conf
+# Configure Apache document root and directory permissions to allow .htaccess
+RUN echo '<VirtualHost *:80> \n\
+    ServerAdmin webmaster@localhost \n\
+    DocumentRoot /var/www/html \n\
+    <Directory /var/www/html> \n\
+        Options Indexes FollowSymLinks \n\
+        AllowOverride All \n\
+        Require all granted \n\
+    </Directory> \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log \n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined \n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-RUN a2enconf override
-
-# Install mysqli extension required for database connection
+# Install mysqli extension
 RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Set working directory
 WORKDIR /var/www/html
-
-# Copy application files to Apache root
 COPY . /var/www/html/
-
-# Set permissions
 RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
